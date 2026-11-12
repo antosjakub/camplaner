@@ -2,6 +2,8 @@
 
 This repository contains a dependency-free Python CLI that discovers accommodation
 near a single-day GPX route using DATAtourisme and optionally OpenStreetMap Overpass.
+It also contains a private Telegram bot that accepts GPX documents and returns the
+CLI's Markdown report.
 
 ## Running the tool
 
@@ -36,4 +38,8 @@ Exit codes are part of the interface:
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
+
+Run the Telegram bot from this directory with `python telegram_bot.py`. Its token
+and chat allowlist belong only in `.env`. Keep the bot private by preserving the
+`TELEGRAM_ALLOWED_CHAT_IDS` authorization check and temporary-file cleanup.
 

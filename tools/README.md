@@ -64,3 +64,33 @@ campsites. Other accommodation includes hotels, motels, hostels, guest houses,
 B&Bs, chalets, apartments, group lodging, holiday centres, and resorts. The
 default is `all`.
 
+## Telegram bot
+
+Create a bot with Telegram's `@BotFather`, then add these values to `.env`:
+
+```dotenv
+TELEGRAM_BOT_TOKEN=your-bot-token
+TELEGRAM_ALLOWED_CHAT_IDS=your-numeric-chat-id
+TELEGRAM_USE_OVERPASS=false
+```
+
+If you do not know your chat ID, initially leave `TELEGRAM_ALLOWED_CHAT_IDS`
+empty, start the bot, and send it `/id`. Add the returned number to `.env` and
+restart the bot. The bot refuses route processing for chats outside this list.
+
+Start it with:
+
+```bash
+python telegram_bot.py
+```
+
+Upload a `.gpx` document with a caption such as `2026-11-13 campsites`. The date
+is required; if omitted, the bot asks for it in the next message. The category
+defaults to `campsites`; supported values are `campsites`, `other`, and `all`.
+`/type other` changes the default for the current process, and `/cancel` discards
+a pending upload.
+
+The GPX is downloaded into a temporary directory, passed to `camplan.py`, and
+deleted after the Markdown report is returned. Overpass is disabled by default
+for predictable response times. Set `TELEGRAM_USE_OVERPASS=true` to enable it.
+

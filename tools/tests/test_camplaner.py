@@ -11,6 +11,7 @@ from camplaner.models import Place
 from camplaner.render import maps_url, render_report
 from camplaner.cli import parser
 from camplaner.sources import _dt_place, merge_places, opening_status
+from camplaner.telegram_bot import build_planner_command, parse_allowed_chat_ids, parse_options
 
 
 class CamplanerTests(unittest.TestCase):
@@ -89,6 +90,25 @@ class CamplanerTests(unittest.TestCase):
     def test_place_category(self):
         self.assertEqual(Place("Camp", 43, 3, "FarmCamping").category, "campsites")
         self.assertEqual(Place("Hotel", 43, 3, "hotel").category, "other")
+
+    def test_telegram_caption_options(self):
+        travel_date, category = parse_options("2026-11-13 other")
+        self.assertEqual(travel_date, date(2026, 11, 13))
+        self.assertEqual(category, "other")
+        self.assertEqual(parse_options("", "campsites"), (None, "campsites"))
+
+    def test_telegram_chat_allowlist(self):
+        self.assertEqual(parse_allowed_chat_ids("123, -456"), {123, -456})
+        with self.assertRaises(ValueError):
+            parse_allowed_chat_ids("not-a-number")
+
+    def test_telegram_planner_command_disables_overpass(self):
+        command = build_planner_command(
+            Path("camplan.py"), Path("route.gpx"), Path("report.md"),
+            date(2026, 11, 13), "campsites", False,
+        )
+        self.assertIn("--no-overpass", command)
+        self.assertIn("campsites", command)
 
 
 if __name__ == "__main__":
