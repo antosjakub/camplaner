@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import date
 from pathlib import Path
 from urllib.parse import quote, urlencode
@@ -18,10 +19,10 @@ def maps_url(place: Place) -> str:
     return "https://www.google.com/maps/search/?" + urlencode({"api": 1, "query": query})
 
 
-def render_report(
+def markdown_report(
     title: str, route: list[tuple[float, float]], places: list[Place], travel_date: date,
-    radius_km: float, errors: list[str], output: Path,
-) -> None:
+    radius_km: float, errors: list[str],
+) -> str:
     lines = [
         f"# Accommodation along {title}", "",
         f"- **Date:** {travel_date.isoformat()}",
@@ -65,5 +66,55 @@ def render_report(
                 links.append(f"[Call {place.phone}](tel:{phone_link})")
             links.append(f"[Coordinates](geo:{place.latitude:.6f},{place.longitude:.6f})")
             lines.extend([f"- **Links:** {' · '.join(links)}", ""])
-    output.write_text("\n".join(lines), encoding="utf-8")
+    return "\n".join(lines)
+
+
+def json_report(
+    title: str, route: list[tuple[float, float]], places: list[Place], travel_date: date,
+    radius_km: float, errors: list[str],
+) -> str:
+    results = []
+    for place in places:
+        status, evidence = opening_status(place, travel_date)
+        results.append({
+            "name": place.name,
+            "category": place.category,
+            "type": place.kind,
+            "opening_status": status.lower(),
+            "opening_evidence": evidence,
+            "route_km": round(place.route_km, 3),
+            "distance_from_route_km": round(place.offset_km, 3),
+            "latitude": place.latitude,
+            "longitude": place.longitude,
+            "address": place.address or None,
+            "phone": place.phone or None,
+            "website": place.website or None,
+            "google_maps_url": maps_url(place),
+            "sources": sorted(place.sources),
+            "source_updated": place.last_update or None,
+        })
+    payload = {
+        "status": "partial" if errors else "complete",
+        "route": {
+            "name": title,
+            "date": travel_date.isoformat(),
+            "length_km": round(cumulative_distances(route)[-1], 3),
+            "search_radius_km": radius_km,
+        },
+        "result_count": len(results),
+        "warnings": errors,
+        "results": results,
+    }
+    return json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+
+
+def render_report(
+    title: str, route: list[tuple[float, float]], places: list[Place], travel_date: date,
+    radius_km: float, errors: list[str], output: Path,
+) -> None:
+    """Compatibility wrapper used by tests and callers writing Markdown files."""
+    output.write_text(
+        markdown_report(title, route, places, travel_date, radius_km, errors),
+        encoding="utf-8",
+    )
 

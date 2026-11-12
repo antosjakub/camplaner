@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import os
 import tempfile
 import unittest
 from datetime import date
@@ -9,8 +11,8 @@ from unittest.mock import patch
 from camplaner.geo import locate_on_route, split_route
 from camplaner.gpx import read_gpx
 from camplaner.models import Place
-from camplaner.render import maps_url, render_report
-from camplaner.cli import parser
+from camplaner.render import json_report, maps_url, render_report
+from camplaner.cli import _load_dotenv, parser
 from camplaner.sources import _dt_place, fetch_datatourisme, fetch_overpass, merge_places, opening_status
 
 
@@ -86,6 +88,29 @@ class CamplanerTests(unittest.TestCase):
         self.assertIn("### Campsites", report)
         self.assertIn("### Other accommodation", report)
         self.assertIn("google.com/maps/search", maps_url(place))
+
+    def test_json_report_has_stable_machine_fields(self):
+        place = Place("A Camp", 43, 3, "camp site", sources={"DATAtourisme"})
+        payload = json.loads(json_report(
+            "Ride", [(43, 3), (43.1, 3.1)], [place], date(2026, 11, 12), 10, [],
+        ))
+        self.assertEqual(payload["status"], "complete")
+        self.assertEqual(payload["result_count"], 1)
+        self.assertEqual(payload["results"][0]["category"], "campsites")
+        self.assertIn("google_maps_url", payload["results"][0])
+
+    def test_loads_key_from_dotenv_without_overriding_environment(self):
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory, ".env").write_text("DATATOURISME_API_KEY=from-file\n")
+            previous = Path.cwd()
+            try:
+                os.chdir(directory)
+                with patch.dict(os.environ, {"DATATOURISME_API_KEY": "already-set"}, clear=True):
+                    loaded = _load_dotenv()
+                    self.assertEqual(os.environ["DATATOURISME_API_KEY"], "already-set")
+            finally:
+                os.chdir(previous)
+        self.assertEqual(loaded, Path(directory, ".env").resolve())
 
     def test_accommodation_type_flag(self):
         self.assertEqual(parser().parse_args(["route.gpx", "--date", "2026-11-12"]).type, "all")

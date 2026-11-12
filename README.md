@@ -13,10 +13,11 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-Keep the DATAtourisme key outside the repository:
+Put the DATAtourisme key in the ignored `.env` file. The script loads it
+automatically:
 
 ```bash
-export DATATOURISME_API_KEY='your-key-here'
+DATATOURISME_API_KEY=your-key-here
 ```
 
 ## Use
@@ -38,7 +39,14 @@ python camplan.py route.gpx --date 2026-11-13 --type other
 python camplan.py route.gpx --date 2026-11-13 --type all
 python camplan.py route.gpx --date 2026-11-13 --no-datatourisme
 python camplan.py route.gpx --date 2026-11-13 --no-overpass
+python camplan.py route.gpx --date 2026-11-13 --format json -o results.json
+python camplan.py route.gpx --date 2026-11-13 --format json -o -
+python camplan.py route.gpx --date 2026-11-13 --verbose
 ```
+
+`--format` selects Markdown or structured JSON. Pass `--output -` to write the
+selected format to stdout. Exit code `0` means a complete result, `1` means a
+partial result with source warnings, and `2` means invalid input or configuration.
 
 The route distance is a straight-line projection onto the GPX geometry, not a
 routed cycling detour. Opening information can be incomplete or stale; verify
